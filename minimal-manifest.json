@@ -1,0 +1,13 @@
+{
+  "@context": "http://iiif.io/api/presentation/2/context.json", 
+  "@id": "http://iiif.io/api/presentation/2.0/example/fixtures/1/manifest.json", 
+  "@type": "sc:Manifest", 
+  "label": "Minimal manifest", 
+  "within": "http://iiif.io/api/presentation/2.0/example/fixtures/collection.json", 
+  "sequences": [
+    {
+      "@type": "sc:Sequence", 
+      "canvases": []
+    }
+  ]
+}
