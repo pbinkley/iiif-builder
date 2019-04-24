@@ -18,17 +18,53 @@ volume = part.xpath('mods:detail[@type="volume"]').text
 edition = part.xpath('mods:detail[@type="edition"]/mods:caption').text
 date = mods.xpath('mods:originInfo/mods:dateIssued').first.text
 
-seed = {
+manifest = IIIF::Presentation::Manifest.new({
   '@id' => '{{ site.url }}{{ site.baseurl }}/manifests/' + manifestname + '.json',
   'label' => publication + ': ' + date + ', ' + edition,
-  'logo' => '{{ site.url }}{{ site.baseurl }}/assets/logo.png'
-}
+  'logo' => '{{ site.url }}{{ site.baseurl }}/assets/logo.png',
+  'metadata' => [
+    {
+      "label": "Publication",
+      "value": [publication]
+    },
+    {
+      "label": "Date",
+      "value": [date]
+    },
+    {
+      "label": "Volume",
+      "value": [volume]
+    },
+    {
+      "label": "Issue",
+      "value": [issue]
+    },
+    {
+      "label": "Edition",
+      "value": [edition]
+    }
+  ],
+  'description' => [
+    {
+      '@value' => 'Experimental manifest',
+      '@language' => 'en'
+    }
+  ],
+  'license' => 'https://creativecommons.org/licenses/by/3.0/',
+  'attribution' => 'University of Alberta Libraries',
+  'sequences' => []
+})
 
-manifest = IIIF::Presentation::Manifest.new(seed)
+sequence = IIIF::Presentation::Sequence.new({
+  '@id' => '{{ site.url }}{{ site.baseurl }}/manifests/' + manifestname + '/sequence/s1',
+  'canvases' => []
+})
 
 tileroot = 'https://tiles.library.ualberta.ca/fcgi-bin/iipsrv.fcgi?IIIF=/maps/tileserver/newspapers/' + manifestname.gsub('-', '/') + '/'
 
 mets.pages.each do |page|
+  # build a canvas element and insert it into manifest.canvases
+
   canvas = IIIF::Presentation::Canvas.new()
   # page identifiers in our NDNP METS are in the form PageModsBib1
   id = page[0].gsub(/[a-zA-Z]*/, '')
@@ -43,30 +79,29 @@ mets.pages.each do |page|
   canvas.width = imageinfo['width']
   canvas.height = imageinfo['height']
 
+  # note: we're storing the whole info.json response as the service element.
+  # This saves time for the client, but it means we'll have to regenerate
+  # the manifest if the image service changes (upgrade to tileserver etc.)
   canvas.images = [
-    {
-      "@context": "http://iiif.io/api/presentation/2/context.json",
-      "@id": "{{ site.url }}{{ site.baseurl }}/manifests/" + manifestname + "/annotation/p" + id.rjust(4, '0') + '-image'
-      "@type": "oa:Annotation",
-      "motivation": "sc:painting",
-      "resource": {
-        "@id": infourl,
-        "@type": "dctypes:Image",
-        "format": "image/jpeg",
-        # note: embedding the whole info.json response in the service property 
-        # is permitted, but not required. It saves the client having to fetch
-        # the info.json separately, but it means updating the manifest when
-        # the tile service changes.
-        "service": imageinfo,
-        "height": imageinfo['height'],
-        "width": imageinfo['width']
-      },
-      "on": canvas['@id']
-    }
+    IIIF::Presentation::Annotation.new({
+      '@context' => 'http://iiif.io/api/presentation/2/context.json',
+      'resource' => IIIF::Presentation::Resource.new({
+        '@id' => infourl,
+        '@type' => 'dctypes:Image',
+        'format' => 'image/jpeg',
+        'service' => imageinfo,
+        'height' => imageinfo['height'],
+        'width' => imageinfo['width']
+      }),
+      'on' => canvas['@id']
+    })
   ]
-  manifest.sequences << canvas
+  
+  sequence.canvases << canvas
 end
 
-File.open(manifestname + '-output-manifest.json', 'w') do |f|
+manifest.sequences << sequence
+
+File.open('output/' + manifestname + '-output-manifest.json', 'w') do |f|
   f.write(manifest.to_json(pretty: true))
 end
