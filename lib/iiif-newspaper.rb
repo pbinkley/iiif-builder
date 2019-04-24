@@ -25,7 +25,7 @@ class Newspaper
     @manifest = IIIF::Presentation::Manifest.new({
       '@id' => '{{ site.url }}{{ site.baseurl }}/manifests/' + manifestname + '.json',
       'label' => publication + ': ' + date + ', ' + edition,
-      'logo' => '{{ site.url }}{{ site.baseurl }}/assets/logo.png',
+      'logo' => 'https://mobile.ualberta.ca/img/UAlberta_Icon.png',
       'metadata' => [
         {
           "label": "Publication",
