@@ -132,45 +132,6 @@ class Mets
     return output
   end
 
-  def articlerange_page root, page, article
-    # includes link to single canvas
-    a = @articles[page][article]
-    d = @divs[page][article]
-    pagenum = page.gsub(/[a-zA-Z]*/, '')
-    range = {
-      '@id' => root + '/' + pagenum + '/range/' + article,
-      '@type' => 'sc:Range',
-      # join title and subTitle (if any) with ': '
-      'label' => a.xpath('mods:titleInfo/mods:title | mods:titleInfo/mods:subTitle', NAMESPACES).to_a.join(': '),
-      'canvases' => []      
-    }
-    range['canvases'] << root + '/' + pagenum
-    return range
-  end
-
-  def articlerange_xywh root, page, article
-    # includes links to all rects as xywh fragments
-    a = @articles[page][article]
-    d = @divs[page][article]
-    pagenum = page.gsub(/[a-zA-Z]*/, '')
-    range = {
-      '@id' => root + '/' + pagenum + '/range/' + article,
-      '@type' => 'sc:Range',
-      # join title and subTitle (if any) with ': '
-      'label' => a.xpath('mods:titleInfo/mods:title | mods:titleInfo/mods:subTitle', NAMESPACES).to_a.join(': '),
-      'canvases' => []      
-    }
-    d.each do |div|
-      # convert to xywh i.e. replace second xy with width and height
-      coords = div.split(',').map { |v| v.to_i }
-      coords[2] = coords[2] - coords[0]
-      coords[3] = coords[3] - coords[1]
-      # byebug
-      range['canvases'] << root + '/' + pagenum + '#xywh=' + coords.map { |v| v.to_s }.join(',')
-    end
-    return range
-  end
-
   def to_xml
     @mets.to_xml
   end

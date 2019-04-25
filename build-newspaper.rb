@@ -8,7 +8,15 @@ metsname = '/home/pbinkley/Projects/iiif/peelsamples/newspapers/EDB/1918/11/11/a
 publication = 'Edmonton Bulletin'
 
 newspaper = Newspaper.new manifestname, metsname, publication
+newspaper.experiment 'Barebones'
 
-File.open('output/' + manifestname + '-output-manifest.json', 'w') do |f|
+File.open('output/' + manifestname + '-manifest.json', 'w') do |f|
+  f.write(newspaper.manifest.to_json(pretty: true))
+end
+
+newspaper.articlerange_page
+newspaper.experiment 'TOC in Ranges'
+
+File.open('output/' + manifestname + '-toc-ranges-manifest.json', 'w') do |f|
   f.write(newspaper.manifest.to_json(pretty: true))
 end

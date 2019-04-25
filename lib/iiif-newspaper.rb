@@ -5,10 +5,11 @@ require_relative './mets.rb'
 require 'byebug'
 
 class Newspaper
-  attr_accessor :manifest, :mets
+  attr_accessor :manifest, :mets, :manifestname
   def initialize(manifestname, metsname, publication)
 
     @mets = Mets.new metsname, publication
+    @manifestname = manifestname
 
     # get issue-level metadata from METS
     mods = @mets.mods_issue
@@ -19,12 +20,13 @@ class Newspaper
     volume = part.xpath('mods:detail[@type="volume"]').text
     edition = part.xpath('mods:detail[@type="edition"]/mods:caption').text
     date = mods.xpath('mods:originInfo/mods:dateIssued').first.text
+    @baselabel = publication + ': ' + date + ', ' + edition
 
     # create skeleton manifest
 
     @manifest = IIIF::Presentation::Manifest.new({
       '@id' => '{{ site.url }}{{ site.baseurl }}/manifests/' + manifestname + '.json',
-      'label' => publication + ': ' + date + ', ' + edition,
+      'label' => @baselabel,
       'logo' => 'https://mobile.ualberta.ca/img/UAlberta_Icon.png',
       'metadata' => [
         {
@@ -111,4 +113,70 @@ class Newspaper
 
     @manifest.sequences << sequence
   end
+
+  def experiment experimentname
+    # append experimentname to the raw title of the manifest
+    @manifest.label = @baselabel + ' / ' + experimentname
+    byebug
+  end
+
+  def articlerange_page 
+    # these article ranges include a link to a single canvas: i.e. they 
+    # are page-level links
+    idlist = []
+    rangelist = []
+    canvaslist = []
+    @mets.pages.each do |page|
+      pageid = page[0]
+      pagenum = pageid.gsub(/[a-zA-Z]*/, '')
+      canvaslist << '{{ site.url }}{{ site.baseurl }}/manifests/' + manifestname + '/canvas/p' + pagenum
+      @mets.articles[pageid].each do |article|
+        articleid = article[0]
+        rangeid = '{{ site.url }}{{ site.baseurl }}/manifests/' + @manifestname + '/canvas/p' + pagenum + '/range/' + articleid
+        # join title and subTitle (if any) with ': '
+        label = article[1].xpath('mods:titleInfo/mods:title | mods:titleInfo/mods:subTitle', NAMESPACES).to_a.join(': ')
+        # use classification if there's no title
+        label = '[' + article[1].xpath('mods:classification').text + ']' if label == ''
+        range = IIIF::Presentation::Range.new ({
+          '@id' => rangeid,
+          'label' => label,
+          'canvases' => ['{{ site.url }}{{ site.baseurl }}/manifests/' + manifestname + '/canvas/p' + pagenum]      
+        })
+        rangelist << range
+        idlist << rangeid
+      end
+    end
+    @manifest.structures = [IIIF::Presentation::Range.new({
+      '@id' => '{{ site.url }}{{ site.baseurl }}/manifests/' + manifestname + '/range/r0',
+      'label' => '',
+      'viewingHint' => 'top',
+      'ranges' => idlist,
+      'canvases' => canvaslist
+    })] + rangelist
+    return true
+  end
+
+  def articlerange_xywh root, page, article
+    # includes links to all rects as xywh fragments
+    a = @articles[page][article]
+    d = @divs[page][article]
+    pagenum = page.gsub(/[a-zA-Z]*/, '')
+    range = {
+      '@id' => root + '/' + pagenum + '/range/' + article,
+      '@type' => 'sc:Range',
+      # join title and subTitle (if any) with ': '
+      'label' => a.xpath('mods:titleInfo/mods:title | mods:titleInfo/mods:subTitle', NAMESPACES).to_a.join(': '),
+      'canvases' => []      
+    }
+    d.each do |div|
+      # convert to xywh i.e. replace second xy with width and height
+      coords = div.split(',').map { |v| v.to_i }
+      coords[2] = coords[2] - coords[0]
+      coords[3] = coords[3] - coords[1]
+      # byebug
+      range['canvases'] << root + '/' + pagenum + '#xywh=' + coords.map { |v| v.to_s }.join(',')
+    end
+    return range
+  end
+
 end
