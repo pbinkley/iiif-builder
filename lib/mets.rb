@@ -128,7 +128,6 @@ class Mets
         }
       end
     end
-    byebug
     return output
   end
 
