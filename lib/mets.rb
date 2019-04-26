@@ -45,10 +45,13 @@ class Mets
       @pages.keys.each do |page|
         @divs[page] = {}
         @articles[page].keys.each do |article|
-          structmap.xpath('mets:div/mets:div[@DMDID="' + page + '"]/mets:div[@DMDID="' + article + '"]', NAMESPACES).each do |rect|
+          # note: there might or might not be section divs above the page div
+          structmap.xpath('.//mets:div[@DMDID="' + page + '"]/mets:div[@DMDID="' + article + '"]', NAMESPACES).each do |rect|
             rects = []
             rect.xpath('mets:div/mets:fptr/mets:area[@SHAPE="RECT"]/@COORDS', NAMESPACES).each do |coords|
-              rects << coords.text
+              # convert to xywh
+              coordsArray = coords.text.split(',').map { |n| n.to_i }
+              rects << [coordsArray[0], coordsArray[1], coordsArray[2] - coordsArray[0], coordsArray[3] - coordsArray[1]].join(',')
             end
             @divs[page][article] = rects
           end

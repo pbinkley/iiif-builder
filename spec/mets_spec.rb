@@ -25,7 +25,7 @@ describe Mets do
       end
 
       it "should return correct coords for a rect within an article" do
-        expect(mets.divs['pageModsBib1']['artModsBib_1_4'][1]).to eq '1211,1029,2949,3287'
+        expect(mets.divs['pageModsBib1']['artModsBib_1_4'][1]).to eq '1211,1029,1738,2258'
       end
 
       it "should generate text toc correctly" do
@@ -45,7 +45,7 @@ describe Mets do
         expect(r['@id']).to eq 'test/3/range/artModsBib_3_6'
         expect(r['label']).to eq 'Owing to Laxity of City Board of Health, Province to Compel Enforcement of the Health Law: Situation Grows More Serious throughout Province-Many Cases of Epidemic Not Being Reported'
         expect(r['canvases'].count).to eq 7
-        expect(r['canvases'][0]).to eq 'test/3#xywh=1185,2129,1158,530'
+        expect(r['canvases'][0]).to eq 'test/3#xywh=1211,1029,1738,2258'
       end
 
       it "should generate a well-formed JSON page-level toc" do
