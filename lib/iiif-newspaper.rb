@@ -117,7 +117,6 @@ class Newspaper
   def experiment experimentname
     # append experimentname to the raw title of the manifest
     @manifest.label = @baselabel + ' / ' + experimentname
-    byebug
   end
 
   def articlerange_page 
@@ -179,4 +178,66 @@ class Newspaper
     return range
   end
 
+  def headline_annotations
+    # generate page-level annotations containing headlines with xywh
+    @mets.pages.each do |page|
+      pageid = page[0]
+      pagenum = pageid.gsub(/[a-zA-Z]*/, '')
+
+      resources = []
+
+      @mets.articles[pageid].each do |article|
+        articleid = article[0]
+        headlineid = '{{ site.url }}{{ site.baseurl }}/manifests/' + @manifestname + '/annos/p' + pagenum + '/headline/' + articleid
+        # join title and subTitle (if any) with ': '
+        label = article[1].xpath('mods:titleInfo/mods:title | mods:titleInfo/mods:subTitle', NAMESPACES).to_a.join(': ')
+        # use classification if there's no title
+        label = '[' + article[1].xpath('mods:classification').text + ']' if label == ''
+
+        resource = IIIF::Presentation::Resource.new(
+          {
+          '@id' => headlineid + '/text',
+          '@type' => 'cnt:ContentAsText',
+          'format' => 'text/plain',
+          'chars' => label
+          }
+        )
+
+        # get xywh of first div
+        puts articleid
+        topDivXYWH = @mets.divs[pageid][articleid]
+        if topDivXYWH
+          anno = IIIF::Presentation::Annotation.new(
+            {
+            '@id' => headlineid,
+            'motivation' => 'oa:commenting',
+            'on' => '{{ site.url }}{{ site.baseurl }}/manifests/' + @manifestname + '/canvas/p' + pagenum + '#xywh=' + topDivXYWH.first,
+            'resource' => resource
+            }
+          )
+
+          resources << anno
+        else
+          puts articleid + ': no divs'
+        end
+      end
+      annolist = IIIF::Presentation::AnnotationList.new( {
+        '@context' =>  'http://iiif.io/api/presentation/2/context.json',
+        '@id' => '{{ site.url }}{{ site.baseurl }}/' + manifestname + '/annos/page-' + pagenum + '.json',
+        'resources' => resources
+      })
+
+      File.open('output/' + manifestname + '/annos/page-' + pagenum + '.json', 'w') do |f|
+        f.write("---\n---\n" + annolist.to_json(pretty: true))
+      end
+
+      # add page-level links to annotation lists
+      @manifest['sequences'][0]['canvases'][pagenum.to_i - 1]['otherContent'] =
+[IIIF::Presentation::AnnotationList.new(
+        {
+          '@id' => '{{ site.url }}{{ site.baseurl }}/annos/' + manifestname + '/page-' + pagenum + '.json'
+        }
+      )]
+    end
+  end
 end
