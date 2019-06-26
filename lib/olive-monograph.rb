@@ -60,7 +60,7 @@ class Monograph
       imageinfo = JSON.parse(response)
 
       # note: our NDNP METS do not store the width/height accessibly: they
-      # can be calculated from measurements in the ALTO, or extracted from an 
+      # can be calculated from measurements in the ALTO, or extracted from an
       # unstructure text comment
       canvas.width = imageinfo['width']
       canvas.height = imageinfo['height']
@@ -94,8 +94,8 @@ class Monograph
     @manifest.label = @baselabel + ' / ' + experimentname
   end
 
-  def datarange_page 
-    # these article ranges include a link to a single canvas: i.e. they 
+  def datarange_page
+    # these article ranges include a link to a single canvas: i.e. they
     # are page-level links
 
     data = YAML.load_file('P796.yml')
@@ -114,20 +114,20 @@ class Monograph
 
     # create ranges for sections
     data.select { |p| p['section'] }.each do |section|
-	  rangeid = '{{ site.url }}{{ site.baseurl }}/manifests/' + @manifestname + '/range/sec' + section['p'].to_s
-	  label = section['section']
-	  range = IIIF::Presentation::Range.new ({
-	      '@id' => rangeid,
-	      'label' => label,
-	      'canvases' => ['{{ site.url }}{{ site.baseurl }}/manifests/' + manifestname + '/canvas/p' + section['p'].to_s]      
-	  })
-	  rangelist << range
-	  idlist << rangeid
-	end
+  	  rangeid = '{{ site.url }}{{ site.baseurl }}/manifests/' + @manifestname + '/range/sec' + section['p'].to_s
+  	  label = section['section']
+  	  range = IIIF::Presentation::Range.new ({
+  	      '@id' => rangeid,
+  	      'label' => label,
+  	      'canvases' => ['{{ site.url }}{{ site.baseurl }}/manifests/' + manifestname + '/canvas/p' + section['p'].to_s]
+  	  })
+  	  rangelist << range
+  	  idlist << rangeid
+  	end
 
     @manifest.structures = [IIIF::Presentation::Range.new({
       '@id' => '{{ site.url }}{{ site.baseurl }}/manifests/' + manifestname + '/range/r0',
-      'label' => '',
+      'label' => 'Table of Contents',
       'viewingHint' => 'top',
       'ranges' => idlist,
       'canvases' => canvaslist
@@ -145,7 +145,7 @@ class Monograph
       '@type' => 'sc:Range',
       # join title and subTitle (if any) with ': '
       'label' => a.xpath('mods:titleInfo/mods:title | mods:titleInfo/mods:subTitle').to_a.join(': '),
-      'canvases' => []      
+      'canvases' => []
     }
     d.each do |div|
       # convert to xywh i.e. replace second xy with width and height
