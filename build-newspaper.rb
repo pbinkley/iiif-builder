@@ -35,3 +35,4 @@ File.open('output/' + manifestname + '-headline-annotations-manifest.json', 'w')
   f.write("---\n---\n" + newspaper.manifest.to_json(pretty: true))
 end
 
+newspaper.article_lod

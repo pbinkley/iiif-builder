@@ -2,10 +2,22 @@
 
 require 'iiif/presentation'
 require_relative './mets.rb'
+require 'rdf'
+require 'rdf/vocab'
+require 'rdf/turtle'
 require 'byebug'
+
+include RDF
 
 class Newspaper
   attr_accessor :manifest, :mets, :manifestname
+  
+  PREDICATES = {
+    'AINewsThes' => RDF::URI.new('http://dummy.org/subject/AINewsThes'),
+    'AIJstorThes' => RDF::URI.new('http://dummy.org/subject/AIJstorThes'),
+    'AIPlaceThes' => RDF::URI.new('http://dummy.org/subject/AIPlaceThes')
+  }
+  
   def initialize(manifestname, metsname, publication, doimages)
 
     @mets = Mets.new metsname, publication
@@ -265,5 +277,32 @@ class Newspaper
         }
       )]
     end
+  end
+  
+  def article_lod
+    
+    graph = RDF::Graph.new
+    
+    @mets.pages.each do |page|
+      pageid = page[0]
+      pagenum = pageid.gsub(/[a-zA-Z]*/, '')
+      
+      @mets.articles[pageid].each do |article|
+        articleuri = RDF::URI.new('http://dummy.org/' + manifestname + '/' + article[0])
+
+        # join title and subTitle (if any) with ': '
+        label = article[1].xpath('mods:titleInfo/mods:title | mods:titleInfo/mods:subTitle', NAMESPACES).to_a.join(': ')
+        # use classification if there's no title
+        label = '[' + article[1].xpath('mods:classification').text + ']' if label == ''
+
+        graph << [articleuri, RDF::Vocab::DC.title, label]
+        article[1].xpath('mods:subject').each do |subject|
+          graph << [articleuri, PREDICATES[subject['authority']], subject.xpath('mods:topic').text]
+        end
+      end
+    end
+    
+    RDF::Turtle::Writer.open('output/' + manifestname + '/' + manifestname + '-articles.ttl') { |writer| writer << graph }
+      
   end
 end
